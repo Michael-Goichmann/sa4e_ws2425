@@ -10,8 +10,8 @@ import firefly_pb2
 import firefly_pb2_grpc
 
 # Grid dimensions
-ROWS = 5
-COLS = 5
+ROWS = 10
+COLS = 10
 
 BASE_PORT = 60000
 
