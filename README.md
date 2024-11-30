@@ -29,10 +29,11 @@ This project implements a distributed firefly synchronization simulation using g
    ```
 
 ## Running the Simulation
-Task 1
+### Task 1
 ```
 poetry run python .\U1\task_1_src\ex_1_task_1.py
 ```
+### Task 2
 ```
 cd .\U1\task_2_src\
 poetry run python main.py
