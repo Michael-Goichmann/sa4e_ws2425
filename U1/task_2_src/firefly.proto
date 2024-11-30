@@ -1,0 +1,17 @@
+syntax = "proto3";
+package firefly;
+
+service FireflyService {
+  rpc UpdatePhase(PhaseMessage) returns (Empty);
+  rpc GetPhase(Empty) returns (PhaseResponse);  // Added method
+}
+
+message PhaseMessage {
+  double phase = 1;
+}
+
+message Empty {}
+
+message PhaseResponse {  // Added message
+  double phase = 1;
+}
