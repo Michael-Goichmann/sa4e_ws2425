@@ -30,18 +30,10 @@ This project implements a distributed firefly synchronization simulation using g
 
 ## Running the Simulation
 ### Task 1
-
-https://github.com/user-attachments/assets/1565a4a9-c958-49d5-b444-6e2a03db20fb
-
-
 ```
 poetry run python .\U1\task_1_src\ex_1_task_1.py
 ```
 ### Task 2
-
-https://github.com/user-attachments/assets/6c285207-d8d7-4a1b-8682-12e7c5267db6
-
-
 ```
 cd .\U1\task_2_src\
 poetry run python main.py
