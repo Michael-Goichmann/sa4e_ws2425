@@ -1,1 +1,4 @@
 *.pdf
+__pychache__
+*.pyc
+.mypy_cache/
