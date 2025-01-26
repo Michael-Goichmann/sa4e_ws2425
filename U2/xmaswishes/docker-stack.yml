@@ -1,0 +1,116 @@
+version: "3.8"
+
+services:
+  ###############################################################################
+  # REGION: Europa (EU)
+  ###############################################################################
+  mongodb_eu:
+    image: mongo:latest
+    networks:
+      - xmas_eu_net
+    volumes:
+      - mongo_data_eu:/data/db
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region == eu
+
+  xmaswishes_app_eu:
+    image: xmaswishes:latest
+    # Falls du lokal builden möchtest, nimm: build: .
+    environment:
+      - MONGO_URI=mongodb://mongodb_eu:27017
+    networks:
+      - xmas_eu_net
+    ports:
+      - "5001:5000"  # Exponiere Port 5001 nach außen
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.region == eu
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - mongodb_eu
+
+
+  ###############################################################################
+  # REGION: Nordamerika (NA)
+  ###############################################################################
+  mongodb_na:
+    image: mongo:latest
+    networks:
+      - xmas_na_net
+    volumes:
+      - mongo_data_na:/data/db
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region == na
+
+  xmaswishes_app_na:
+    image: xmaswishes:latest
+    environment:
+      - MONGO_URI=mongodb://mongodb_na:27017
+    networks:
+      - xmas_na_net
+    ports:
+      - "5002:5000" # Exponiere Port 5002 nach außen
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.region == na
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - mongodb_na
+
+
+  ###############################################################################
+  # REGION: Nordpol (NP) – Zentral (Manager)
+  ###############################################################################
+  mongodb_np:
+    image: mongo:latest
+    networks:
+      - xmas_np_net
+    volumes:
+      - mongo_data_np:/data/db
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region == np
+
+  xmaswishes_app_np:
+    image: xmaswishes:latest
+    environment:
+      - MONGO_URI=mongodb://mongodb_np:27017
+    networks:
+      - xmas_np_net
+    ports:
+      - "5003:5000" # Exponiere Port 5003 nach außen
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.region == np
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - mongodb_np
+
+
+# Netzwerke: Je Region ein Overlay-Netz
+networks:
+  xmas_eu_net:
+    driver: overlay
+  xmas_na_net:
+    driver: overlay
+  xmas_np_net:
+    driver: overlay
+
+volumes:
+  mongo_data_eu:
+  mongo_data_na:
+  mongo_data_np:

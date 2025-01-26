@@ -1,4 +1,61 @@
+# Command to export poetry dependencies to requirements.txt
 poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-
+# Commands to build an run docker container locally
 docker build -t xmaswishes:latest .
+
+docker run -d -p 5000:5000 --name xmaswishes_container xmaswishes:latest
+
+
+
+
+
+# Command to build docker container with both mongodb and flask app
+docker-compose up -d
+
+# Command to check logs of the app 
+docker-compose logs -f xmaswishes_app
+
+
+# Swarm init
+docker swarm init
+
+
+# Command to deploy the app to docker swarm
+docker stack deploy -c docker-stack.yml xmas
+
+# Command to check the services running in the stack
+docker stack services xmas
+
+# Command to check the logs of the app running in the stack
+docker service ls
+docker service ps xmas_xmaswishes_app
+
+# Command to scale the app
+docker service scale xmas_xmaswishes_app=3
+
+
+
+
+##################################
+# Vagrant related Commands to create VMs 
+vagrant up
+vagrant ssh manager-np
+vagrant ssh worker-eu
+vagrant ssh worker-na
+
+# Commands to connect the 3 vms to a docker swarm
+sudo docker swarm init --advertise-addr 192.168.56.10
+sudo docker swarm join --token <WORKER_TOKEN> 192.168.56.10:2377
+sudo docker swarm join --token <WORKER_TOKEN> 192.168.56.10:2377
+
+SWMTKN-1-4bph8gnio7mqepj3pulh3q10flke5pdph1hh93ezpku954pgsv-6iucs116c0xhos652g6a1sx2x
+# Check in manager that all swarm nodes are there
+vagrant ssh manager-np
+sudo docker node ls
+# Chekc that every node has the correct labels
+docker node ls
+docker node inspect manager-np
+docker node inspect worker-eu
+docker node inspect worker-na
+
