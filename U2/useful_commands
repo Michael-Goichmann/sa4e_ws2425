@@ -59,3 +59,9 @@ docker node inspect manager-np
 docker node inspect worker-eu
 docker node inspect worker-na
 
+
+
+##################################
+# Java block
+# Command to create a new maven project
+mvn clean package
