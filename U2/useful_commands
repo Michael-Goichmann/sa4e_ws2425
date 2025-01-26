@@ -65,3 +65,5 @@ docker node inspect worker-na
 # Java block
 # Command to create a new maven project
 mvn clean package
+# Run task 4 with this command
+java -jar target/camel-ocr-demo-1.0-SNAPSHOT-jar-with-dependencies.jar
