@@ -76,5 +76,26 @@ def delete_wish(wish_id):
         abort(404, "Wish not found")
     return jsonify({"message": "Wish deleted"}), 200
 
+@app.route("/wishes/sync", methods=["GET"])
+def get_wishes_sync():
+    updated_after = request.args.get("updatedAfter")
+    query = {}
+    if updated_after:
+        # parse Datum
+        from datetime import datetime
+        try:
+            after_date = datetime.fromisoformat(updated_after.replace("Z",""))
+            query = {"updatedAt": {"$gt": after_date}}
+        except:
+            pass
+
+    # e.g. in Mongo: wishes_collection.find(query)
+    results = list(wishes_collection.find(query))
+    for r in results:
+        r["_id"] = str(r["_id"])  # falls du es in JSON schicken willst
+    return jsonify(results), 200
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

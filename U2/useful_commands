@@ -67,3 +67,10 @@ docker node inspect worker-na
 mvn clean package
 # Run task 4 with this command
 java -jar target/camel-ocr-demo-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+
+
+##################################
+# Cronjob for Sync of central northpole db to regional db
+# Alle 10 Minuten
+*/10 * * * * /usr/bin/python3 /home/nordpol/sync_nordpol.py >> /home/nordpol/sync.log 2>&1
