@@ -57,33 +57,56 @@ def main():
 
     # Token-Verarbeitung
     while True:
-        for message in consumer:
-            data = message.value
-            token_id = data["token_id"]
-            aktuelle_runde = data["runden"]
+        try:
+            for message in consumer:
+                data = message.value
+                token_id = data["token_id"]
+                aktuelle_runde = data["runden"]
 
-            neue_runde = aktuelle_runde + 1
-            rundenzaehler[token_id] = neue_runde
+                # Skip if we don't know this token
+                if token_id not in startzeiten:
+                    continue
 
-            if neue_runde >= max_runden:
-                # Ziel erreicht
-                endzeit = time.time()
-                laufzeit = endzeit - startzeiten[token_id]
-                print("Streitwagen {{}} hat sein Ziel erreicht! Runden: {{}}, Laufzeit: {{:.3f}}s"
-                      .format(token_id, max_runden, laufzeit))
-                del startzeiten[token_id]
-                del rundenzaehler[token_id]
+                neue_runde = aktuelle_runde + 1
+                rundenzaehler[token_id] = neue_runde
 
-                if len(rundenzaehler) == 0:
-                    print("Rennen beendet für alle Streitwagen.")
-                    return
-            else:
-                # Nächste Runde
-                msg = {{
-                    "token_id": token_id,
-                    "runden": neue_runde
-                }}
-                producer.send('{output_topic}', msg)
+                if neue_runde >= max_runden:
+                    # Ziel erreicht
+                    try:
+                        endzeit = time.time()
+                        laufzeit = endzeit - startzeiten[token_id]
+                        print("Streitwagen {{}} hat sein Ziel erreicht! Runden: {{}}, Laufzeit: {{:.3f}}s"
+                              .format(token_id, max_runden, laufzeit))
+                    finally:
+                        # Ensure cleanup happens even if printing fails
+                        if token_id in startzeiten:
+                            del startzeiten[token_id]
+                        if token_id in rundenzaehler:
+                            del rundenzaehler[token_id]
+
+                    if len(rundenzaehler) == 0:
+                        print("Rennen beendet für alle Streitwagen.")
+                        producer.flush()  # Ensure all messages are sent
+                        return
+                else:
+                    # Nächste Runde
+                    msg = {{
+                        "token_id": token_id,
+                        "runden": neue_runde
+                    }}
+                    producer.send('{output_topic}', msg)
+
+        except KeyboardInterrupt:
+            print("Programm wird beendet...")
+            break
+        except Exception as e:
+            print(f"Fehler: {{e}}")
+            continue
+
+    # Cleanup
+    producer.flush()
+    producer.close()
+    consumer.close()
 
 if __name__ == "__main__":
     main()
