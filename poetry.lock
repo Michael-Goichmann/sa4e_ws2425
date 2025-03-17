@@ -881,6 +881,24 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "kafka-python"
+version = "2.1.1"
+description = "Pure Python client for Apache Kafka"
+optional = false
+python-versions = "*"
+files = [
+    {file = "kafka_python-2.1.1-py2.py3-none-any.whl", hash = "sha256:710254f354670e12687b6cef07eda027bb658f42df8382885c097fed8cd972c0"},
+    {file = "kafka_python-2.1.1.tar.gz", hash = "sha256:35c6a9310fc31199274d943759573609822ef5e2d3598b3b75daa834721bfe67"},
+]
+
+[package.extras]
+crc32c = ["crc32c"]
+lz4 = ["lz4"]
+snappy = ["python-snappy"]
+testing = ["mock", "pytest", "pytest-mock", "pytest-timeout"]
+zstd = ["zstandard"]
+
+[[package]]
 name = "locust"
 version = "2.32.6"
 description = "Developer-friendly load testing framework"
@@ -1773,4 +1791,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "e7dab361f3c017ca60dcd761baaef34f4012fcbf71553375358f4a187dd39239"
+content-hash = "ec3b54f3bdd90b8435b670ae6b00b9a8e91dabb28fb16d8fb19f9432708cf324"
