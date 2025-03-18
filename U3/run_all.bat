@@ -71,20 +71,32 @@ IF ERRORLEVEL 1 (
 )
 
 REM 4) Kurze Wartezeit, damit Kafka vollständig hochfährt
-ECHO [4/5] Warte 10 Sekunden, damit Kafka stabil läuft...
+ECHO [4/5] Warte 10 Sekunden, damit Kafka stabil funktioniert...
 powershell -Command "Start-Sleep -Seconds 10"
 
 REM 5) Segmente starten
 ECHO [5/5] Starte Segmente im Hintergrund...
 PUSHD generated_segments
 
-REM Erst alle "normalen" segment-*.py im Hintergrund starten
+REM First start bottleneck segments
+FOR %%F IN (bottleneck-*.py) DO (
+    ECHO Starte %%F ...
+    START "Bottleneck %%F" /B python %%F
+)
+
+REM Then start caesar segments
+FOR %%F IN (caesar-*.py) DO (
+    ECHO Starte %%F ...
+    START "Caesar %%F" /B python %%F
+)
+
+REM Then start normal segments
 FOR %%F IN (segment-*.py) DO (
     ECHO Starte %%F ...
     START "Segment %%F" /B python %%F
 )
 
-REM 5b) Alle start-and-goal-*.py im Vordergrund starten
+REM Finally start start-and-goal segments
 FOR %%F IN (start-and-goal-*.py) DO (
     ECHO Starte %%F [Start-Goal] mit %NUM_RUNDEN% Runden und %NUM_STREITWAGEN% Streitwagen...
     python %%F %NUM_RUNDEN% %NUM_STREITWAGEN%
