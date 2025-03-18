@@ -4,11 +4,11 @@ import json
 
 def generate_tracks(num_tracks: int, length_of_track: int):
     """
-    Generates a data structure with 'num_tracks' circular tracks.
-    Each track has exactly 'length_of_track' segments:
-      - 1 segment: 'start-and-goal-t'
-      - (length_of_track - 1) segments: 'segment-t-c'
-    Returns a Python dict that can be serialized to JSON.
+    Erzeugt eine Datenstruktur mit 'num_tracks' Tracks,
+    wobei JEDER Track folgende Sonder-Segmente enthält:
+      - start-and-goal-t
+      - 1 bottleneck-t (mit 2 unterschiedlichen Nachfolgern)
+      - 1 caesar-t (wird von jedem Token genau einmal während des Rennens besucht)
     """
     all_tracks = []
 
@@ -16,42 +16,58 @@ def generate_tracks(num_tracks: int, length_of_track: int):
         track_id = str(t)
         segments = []
 
-        # First segment: start-and-goal-t
-        start_segment_id = f"start-and-goal-{t}"
-        if length_of_track == 1:
-            # Edge case: track length is 1 => no "normal" segments, loops onto itself
-            next_segments = [start_segment_id]
-        else:
-            next_segments = [f"segment-{t}-1"]
-
+        # 1) Start-and-goal segment
         start_segment = {
-            "segmentId": start_segment_id,
+            "segmentId": f"start-and-goal-{t}",
             "type": "start-goal",
-            "nextSegments": next_segments
+            "nextSegments": [f"segment-{t}-1"]
         }
         segments.append(start_segment)
 
-        # Create normal segments: segment-t-c for c in [1..(L-1)]
-        for c in range(1, length_of_track):
-            seg_id = f"segment-{t}-{c}"
-            # If this is the last normal segment, it loops back to 'start-and-goal-t'
-            if c == length_of_track - 1:
-                next_segs = [start_segment_id]
-            else:
-                next_segs = [f"segment-{t}-{c+1}"]
+        # Calculate segments distribution
+        num_segments = length_of_track - 3
+        pre_bottleneck = num_segments // 2
 
+        # 2) Normal segments before bottleneck
+        for i in range(1, pre_bottleneck + 1):
             segment = {
-                "segmentId": seg_id,
+                "segmentId": f"segment-{t}-{i}",
                 "type": "normal",
-                "nextSegments": next_segs
+                "nextSegments": [f"segment-{t}-{i+1}" if i < pre_bottleneck else f"bottleneck-{t}"]
             }
             segments.append(segment)
 
-        track_definition = {
+        # 3) Bottleneck segment
+        bottleneck = {
+            "segmentId": f"bottleneck-{t}",
+            "type": "bottleneck",
+            # Two paths: to caesar or back to start
+            "nextSegments": [f"segment-{t}-{pre_bottleneck+1}", f"start-and-goal-{t}"]
+        }
+        segments.append(bottleneck)
+
+        # 4) Normal segments after bottleneck (path to Caesar)
+        for i in range(pre_bottleneck + 1, num_segments + 1):
+            segment = {
+                "segmentId": f"segment-{t}-{i}",
+                "type": "normal",
+                "nextSegments": [f"caesar-{t}"]
+            }
+            segments.append(segment)
+
+        # 5) Caesar segment
+        caesar = {
+            "segmentId": f"caesar-{t}",
+            "type": "caesar",
+            "nextSegments": [f"start-and-goal-{t}"]
+        }
+        segments.append(caesar)
+
+        track = {
             "trackId": track_id,
             "segments": segments
         }
-        all_tracks.append(track_definition)
+        all_tracks.append(track)
 
     return {"tracks": all_tracks}
 
@@ -65,6 +81,11 @@ def main():
     length_of_track = int(sys.argv[2])
     output_file = sys.argv[3]
 
+    # ACHTUNG: Bei sehr kleinem length_of_track < 2 kann es sein, dass wir
+    # nicht genügend Normal-Segmente haben. Hier ggf. anpassen oder Warnung ausgeben:
+    if length_of_track < 2:
+        print(f"Warnung: length_of_track={length_of_track} < 2 - die erzeugte Struktur enthält evtl. kaum Normal-Segmente.")
+
     tracks_data = generate_tracks(num_tracks, length_of_track)
 
     with open(output_file, "w", encoding="utf-8") as f:
@@ -74,4 +95,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
