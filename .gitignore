@@ -3,6 +3,9 @@ __pychache__
 *.pyc
 .mypy_cache/
 kafka_data
+kafka_data1
+kafka_data2
+kafka_data3
 generated_segments
 .vscode/settings.json
 U2

@@ -13,9 +13,13 @@ Dieses Segment startet Tokens (Streitwagen) und misst deren Runden.
 import time
 import json
 import sys
+import os
 from kafka import KafkaConsumer, KafkaProducer
 
 def main():
+    # Dynamische Broker-Liste via Umgebungsvariable
+    BROKER_LIST = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092").split(",")
+
     # Argumente: rundenanzahl, anzahl_tokens
     if len(sys.argv) < 3:
         print("Usage: python {seg_id}.py <runden> <anzahl_tokens>")
@@ -25,11 +29,13 @@ def main():
     anzahl_tokens = int(sys.argv[2])
 
     # Kafka Setup
-    producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
-                             value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+    producer = KafkaProducer(
+        bootstrap_servers=BROKER_LIST,
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    )
     consumer = KafkaConsumer(
         '{input_topic}',
-        bootstrap_servers=['localhost:9092'],
+        bootstrap_servers=BROKER_LIST,
         auto_offset_reset='earliest',
         enable_auto_commit=True,
         group_id='{segment_id}-group',
@@ -39,8 +45,9 @@ def main():
     # Dictionaries
     startzeiten = {{}}
     rundenzaehler = {{}}
+    processed_messages = set()  # Add this line
 
-    # Tokens erzeugen (z.B. wagen_1 ... wagen_n)
+    # Tokens erzeugen
     for i in range(1, anzahl_tokens+1):
         token_id = "wagen_" + str(i)
         startzeiten[token_id] = time.time()
@@ -54,7 +61,6 @@ def main():
     print("Start-and-goal-Segment {{segment_id}} hat {{anzahl_tokens}} Tokens ins Rennen geschickt."
       .format(segment_id='{segment_id}', anzahl_tokens=anzahl_tokens))
 
-
     # Token-Verarbeitung
     while True:
         try:
@@ -62,7 +68,16 @@ def main():
                 data = message.value
                 token_id = data["token_id"]
                 aktuelle_runde = data["runden"]
-
+                
+                # Create a unique message identifier
+                msg_id = f"{{token_id}}-{{aktuelle_runde}}"
+                
+                # Skip if we've already processed this message
+                if msg_id in processed_messages:
+                    continue
+                    
+                processed_messages.add(msg_id)
+                
                 # Skip if we don't know this token
                 if token_id not in startzeiten:
                     continue
@@ -78,7 +93,7 @@ def main():
                         print("Streitwagen {{}} hat sein Ziel erreicht! Runden: {{}}, Laufzeit: {{:.3f}}s"
                               .format(token_id, max_runden, laufzeit))
                     finally:
-                        # Ensure cleanup happens even if printing fails
+                        # Remove from dicts
                         if token_id in startzeiten:
                             del startzeiten[token_id]
                         if token_id in rundenzaehler:
@@ -86,7 +101,7 @@ def main():
 
                     if len(rundenzaehler) == 0:
                         print("Rennen beendet für alle Streitwagen.")
-                        producer.flush()  # Ensure all messages are sent
+                        producer.flush()
                         return
                 else:
                     # Nächste Runde
@@ -95,6 +110,10 @@ def main():
                         "runden": neue_runde
                     }}
                     producer.send('{output_topic}', msg)
+                
+                # Cleanup old messages from set (keep only last 1000)
+                if len(processed_messages) > 1000:
+                    processed_messages.clear()
 
         except KeyboardInterrupt:
             print("Programm wird beendet...")
@@ -111,7 +130,6 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-
 NORMAL_TEMPLATE = r'''#!/usr/bin/env python3
 """
 Automatisch erzeugt für: {segment_id}
@@ -120,26 +138,59 @@ Dieses Segment leitet Tokens nur weiter.
 """
 
 import json
+import os
+import time
 from kafka import KafkaConsumer, KafkaProducer
 
 def main():
+    segment_id = "{segment_id}"
+    input_topic = "{input_topic}"
+    output_topic = "{output_topic}"
+    group_id = segment_id + '-group-' + str(time.time())
+    
+    # Dynamische Broker-Liste via Umgebungsvariable
+    BROKER_LIST = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092").split(",")
+
+    # Message tracking to avoid duplicates
+    processed_messages = set()
+
     consumer = KafkaConsumer(
-        '{input_topic}',
-        bootstrap_servers=['localhost:9092'],
+        input_topic,
+        bootstrap_servers=BROKER_LIST,
         auto_offset_reset='earliest',
         enable_auto_commit=True,
-        group_id='{segment_id}-group',
+        group_id=group_id,
         value_deserializer=lambda m: json.loads(m.decode('utf-8'))
     )
 
-    producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
-                             value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+    producer = KafkaProducer(
+        bootstrap_servers=BROKER_LIST,
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    )
 
-    print(f"Segment '{segment_id}' lauscht auf Topic '{input_topic}' und leitet weiter an '{output_topic}'.")
-    for message in consumer:
-        data = message.value
-        # Token direkt weiterleiten
-        producer.send('{output_topic}', data)
+    try:
+        print("Segment '{{}}' lauscht auf Topic '{{}}' und leitet weiter an '{{}}'.".format(segment_id, input_topic, output_topic))
+        for message in consumer:
+            data = message.value
+            # Create a unique message identifier
+            msg_id = f"{{data['token_id']}}-{{data['runden']}}"
+            
+            # Skip if we've already processed this message
+            if msg_id in processed_messages:
+                continue
+                
+            processed_messages.add(msg_id)
+            producer.send(output_topic, data)
+            producer.flush()
+            
+            # Cleanup old messages from set (keep only last 1000)
+            if len(processed_messages) > 1000:
+                processed_messages.clear()
+    except KeyboardInterrupt:
+        print("Programm wird beendet...")
+    finally:
+        producer.close()
+        consumer.close()
 
 if __name__ == "__main__":
     main()
@@ -174,14 +225,10 @@ def main():
             seg_type = seg["type"]
             next_segments = seg["nextSegments"]
 
-            # Für Einfachheit nehmen wir an, dass es hier immer GENAU EIN nächstes Segment gibt
-            # (Das Script generiert maximal 1 Eintrag in nextSegments in dieser Aufgabe.)
-            # In komplexeren Fällen müsste man ggf. mehrere Topics ansteuern.
-            output_topic = ""
+            # Für Einfachheit nehmen wir weiterhin an: GENAU EIN nächstes Segment.
             if len(next_segments) == 1:
                 output_topic = next_segments[0] + "-in"
             else:
-                # Sammel-Topic? Für Demo hier nicht weiter vertieft
                 output_topic = "multi-output-topic"
 
             input_topic = segment_id + "-in"

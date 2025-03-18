@@ -31,6 +31,12 @@ IF "%NUM_STREITWAGEN%"=="" SET NUM_STREITWAGEN=4
 
 SET TRACKS_JSON=tracks.json
 
+REM NEU: Broker-Liste für 3-Broker-Cluster
+SET KAFKA_BOOTSTRAP_SERVERS=localhost:9092,localhost:9093,localhost:9094
+
+ECHO Starte Cluster mit 3 Kafka-Brokern => KAFKA_BOOTSTRAP_SERVERS=%KAFKA_BOOTSTRAP_SERVERS%
+ECHO.
+
 ECHO ============================================================================
 ECHO Verwende folgende Einstellungen:
 ECHO   NUM_TRACKS       = %NUM_TRACKS%
@@ -66,7 +72,6 @@ IF ERRORLEVEL 1 (
 
 REM 4) Kurze Wartezeit, damit Kafka vollständig hochfährt
 ECHO [4/5] Warte 10 Sekunden, damit Kafka stabil läuft...
-REM Powershell-Aufruf zum Sleep
 powershell -Command "Start-Sleep -Seconds 10"
 
 REM 5) Segmente starten
@@ -76,14 +81,13 @@ PUSHD generated_segments
 REM Erst alle "normalen" segment-*.py im Hintergrund starten
 FOR %%F IN (segment-*.py) DO (
     ECHO Starte %%F ...
-    REM START /B => Kein neues Fenster, /MIN /MAX => ggf. Fenster minimiert
     START "Segment %%F" /B python %%F
 )
 
-REM Dann alle start-and-goal-*.py mit CLI-Parametern
+REM 5b) Alle start-and-goal-*.py im Vordergrund starten
 FOR %%F IN (start-and-goal-*.py) DO (
-    ECHO Starte %%F mit %NUM_RUNDEN% Runden und %NUM_STREITWAGEN% Streitwagen...
-    START "StartAndGoal %%F" /B python %%F %NUM_RUNDEN% %NUM_STREITWAGEN%
+    ECHO Starte %%F [Start-Goal] mit %NUM_RUNDEN% Runden und %NUM_STREITWAGEN% Streitwagen...
+    python %%F %NUM_RUNDEN% %NUM_STREITWAGEN%
 )
 
 POPD
