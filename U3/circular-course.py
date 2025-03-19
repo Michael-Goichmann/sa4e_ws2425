@@ -81,10 +81,10 @@ def main():
     length_of_track = int(sys.argv[2])
     output_file = sys.argv[3]
 
-    # ACHTUNG: Bei sehr kleinem length_of_track < 2 kann es sein, dass wir
+    # ACHTUNG: Bei sehr kleinem length_of_track < 3 kann es sein, dass wir
     # nicht genügend Normal-Segmente haben. Hier ggf. anpassen oder Warnung ausgeben:
-    if length_of_track < 2:
-        print(f"Warnung: length_of_track={length_of_track} < 2 - die erzeugte Struktur enthält evtl. kaum Normal-Segmente.")
+    if length_of_track < 3:
+        print(f"Warnung: length_of_track={length_of_track} < 3 - die erzeugte Struktur enthält evtl. kaum Normal-Segmente.")
 
     tracks_data = generate_tracks(num_tracks, length_of_track)
 
